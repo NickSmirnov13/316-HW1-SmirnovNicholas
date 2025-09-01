@@ -1,4 +1,4 @@
-import { jsTPS } from '../jstps/index.js'
+import { jsTPS } from '../jstps/index.js';
 import Playlist from "./Playlist.js";
 import PlaylistSongPrototype from './PlaylistSongPrototype.js';
 import CreateSong_Transaction from "./transactions/CreateSong_Transaction.js";
@@ -318,6 +318,7 @@ export default class PlaylisterModel {
     }
 
 
+
     /**
      * Mutator method that moves the song from one index to another in the playlist. Note
      * that once the song is moved in the model's data the view updates the UI and the
@@ -569,7 +570,6 @@ export default class PlaylisterModel {
 
     addTransactionToEditSong(index, { title, artist, youTubeId, year }) {
         const oldSong = this.getSong(index);
-
         const newTitle = (title ?? "").trim() || "Untitled";
         const newArtist = (artist ?? "").trim() || "???";
         const newYT = (youTubeId ?? "").trim() || "dQw4w9WgXcQ";
@@ -579,9 +579,14 @@ export default class PlaylisterModel {
         const newSong = new PlaylistSongPrototype(newTitle, newArtist, newYT, newYear);
         const tx = new EditSong_Transaction(this, index, oldSong, newSong);
         this.tps.processTransaction(tx);
-        this.view.updateToolbarButtons(this.hasCurrentList(),
-            this.confirmDialogOpen, this.tps.hasTransactionToDo(), this.tps.hasTransactionToUndo());
+        this.view.updateToolbarButtons(
+            this.hasCurrentList(),
+            this.confirmDialogOpen,
+            this.tps.hasTransactionToDo(),
+            this.tps.hasTransactionToUndo()
+        );
     }
+
 
 
 }

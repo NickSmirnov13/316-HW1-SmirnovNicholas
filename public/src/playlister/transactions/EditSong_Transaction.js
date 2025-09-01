@@ -5,7 +5,7 @@ export default class EditSong_Transaction extends jsTPS_Transaction {
     super();
     this.model = model;
     this.index = index;
-    this.oldSong = { ...oldSong }; // plain copies are fine
+    this.oldSong = { ...oldSong };
     this.newSong = { ...newSong };
   }
   doTransaction()  { this.model.updateSong(this.index, this.newSong); }

@@ -176,31 +176,25 @@ export default class PlaylisterView {
             const card = proto.cloneNode(true);
             card.hidden = false;
             card.id = `song-card-${i + 1}`;
-
-            // number as text node (matches original styling)
+            // number as text node
             card.insertBefore(document.createTextNode(`${i + 1}. `), card.firstChild);
 
-            // title
             const titleA = card.querySelector(".song-card-title");
             titleA.id = `song-card-title-${i + 1}`;
             titleA.href = `https://www.youtube.com/watch?v=${song.youTubeId ?? ""}`;
             titleA.target = 1;
             titleA.textContent = song.title ?? "Untitled";
 
-            // year after title
             const yearSpan = card.querySelector(".song-card-year");
             yearSpan.id = `song-card-year-${i + 1}`;
             const yr = song.year;
-            yearSpan.textContent = (yr !== undefined && yr !== null && `${yr}`.trim() !== "")
-                ? ` (${yr})`
-                : "";
+            yearSpan.textContent =
+                (yr !== undefined && yr !== null && `${yr}`.trim() !== "") ? ` (${yr})` : "";
 
-            // artist
             const artistSpan = card.querySelector(".song-card-artist");
             artistSpan.id = `song-card-artist-${i + 1}`;
             artistSpan.textContent = song.artist ?? "???";
 
-            // remove button (controller expects 0-based id)
             const removeBtn = card.querySelector('input[id^="remove-song-"]');
             removeBtn.id = `remove-song-${i}`;
 
@@ -209,6 +203,7 @@ export default class PlaylisterView {
 
         this.controller.registerSongCardHandlers();
     }
+
 
 
 

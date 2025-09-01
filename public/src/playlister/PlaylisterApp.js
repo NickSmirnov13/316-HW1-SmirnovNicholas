@@ -1,6 +1,7 @@
 import PlaylisterModel from './PlaylisterModel.js';
 import PlaylisterView from './PlaylisterView.js';
 import PlaylisterController from './PlaylisterController.js';
+import PlaylistSongPrototype from './PlaylistSongPrototype.js';
 
 /**
  * This is the entry point into our application, it launches the app by first
@@ -35,33 +36,38 @@ export class PlaylisterApp {
      * can be used to store initial playlist data for the purpose of testing 
      * using the provided lists.
     */
-    loadListsFromJSON(jsonFilePath) {
-        let xmlhttp = new XMLHttpRequest();
-        let modelToUpdate = this.model;
+    loadListsFromJSON(jsonFilePath, replace = false) {
+        const req = new XMLHttpRequest();
+        const model = this.model;
 
-        // THIS DEFINES A CALLBACK THAT WILL BE INVOKED ONCE
-        // THE CONTENTS OF THE JSON FILE ARE ACTUALLY RECEIVED,
-        // NOTE THAT THIS ONLY HAPPENS IN RESPONSE TO THE
-        // open AND THEN send FUNCTIONS BEING CALLED ON A VALID
-        // JSON FILE
-        xmlhttp.onreadystatechange = function () {
-            if (this.readyState == 4 && this.status == 200) {
-                let lists = JSON.parse(this.responseText).playlists;
+        req.onreadystatechange = function () {
+            if (this.readyState === 4 && this.status === 200) {
+                const lists = JSON.parse(this.responseText).playlists;
 
-                // GO THROUGH THE DATA AND LOAD IT INTO OUR APP'S DATA MODEL
-                for (let i = 0; i < lists.length; i++) {
-                    let listData = lists[i];
-                    let songs = [];
-                    for (let j = 0; j < listData.songs.length; j++) {
-                        songs[j] = listData.songs[j];
-                    }
-                    modelToUpdate.addNewList(listData.name, songs);
+                if (replace) {
+                    // clear model state so we don't append duplicates
+                    model.unselectCurrentList();
+                    model.playlists = [];
+                    model.tps.clearAllTransactions?.();
                 }
+
+                for (const listData of lists) {
+                    const songs = (listData.songs || []).map(s =>
+                        new PlaylistSongPrototype(s.title, s.artist, s.youTubeId, s.year)
+                    );
+                    model.addNewList(listData.name, songs);
+                }
+
+                model.saveLists(); // persist the seeded data
             }
         };
-        xmlhttp.open("GET", jsonFilePath, true);
-        xmlhttp.send();
+
+        req.open("GET", jsonFilePath, true);
+        req.send();
     }
+
+
+
 
     /**
      * Sets up the application for use once the initial HTML file has fully loaded
@@ -71,23 +77,27 @@ export class PlaylisterApp {
      * @param {*} testFile The JSON file containing initial playlists of data.
      */
     start() {
-        // DISABLE ALL RELEVANT 
+        // Disable unusable controls, etc.
         this.view.init();
 
-        // FIRST TRY AND GET THE LISTS FROM LOCAL STORAGE
-        let success = this.model.loadLists();
-        if (!success) {
-            this.loadListsFromJSON("./data/default_lists.json");
+        // If there is saved data, load ONLY that and stop.
+        if (this.model.loadLists()) {
+            return;
         }
+
+        // Otherwise seed once from JSON (replace in-memory lists)
+        this.loadListsFromJSON("./data/default_lists.json", /*replace=*/true);
     }
+
+
 }
 
 /**
  * This callback is where our application begins as this function is invoked once the HTML page
  * has fully loaded its initial elements into the DOM.
  */
-window.onload = function() {
+window.onload = function () {
     // MAKE THE APP AND START IT
     let app = new PlaylisterApp();
-    app.start(); 
+    app.start();
 }

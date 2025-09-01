@@ -67,6 +67,7 @@ export default class PlaylisterController {
             editSongModal.classList.remove("is-visible");
         };
 
+        // EDIT SONG — CONFIRM (undo/redo)
         const okBtn = document.getElementById("edit-song-confirm-button");
         if (okBtn) {
             okBtn.onclick = () => {
@@ -82,6 +83,18 @@ export default class PlaylisterController {
                 document.getElementById("edit-song-modal").classList.remove("is-visible");
             };
         }
+
+        // ENTER submits
+        [
+            "edit-song-modal-title-textfield",
+            "edit-song-modal-artist-textfield",
+            "edit-song-modal-youTubeId-textfield",
+            "edit-song-modal-year-textfield",
+        ].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); okBtn?.click(); } };
+        });
+
 
         // REMOVE SONG — CONFIRM
         document.getElementById("remove-song-confirm-button").onclick = (event) => {
@@ -101,25 +114,6 @@ export default class PlaylisterController {
             document.getElementById("remove-song-modal").classList.remove("is-visible");
         };
 
-
-        // === Pressing ENTER in any field should Confirm ===
-        const editFieldIds = [
-            "edit-song-modal-title-textfield",
-            "edit-song-modal-artist-textfield",
-            "edit-song-modal-youTubeId-textfield",
-            "edit-song-modal-year-textfield",
-        ];
-        editFieldIds.forEach((id) => {
-            const el = document.getElementById(id);
-            if (el) {
-                el.onkeydown = (e) => {
-                    if (e.key === "Enter") {
-                        e.preventDefault();
-                        okBtn?.click(); // trigger the same confirm flow
-                    }
-                };
-            }
-        });
 
         // RESPOND TO THE USER CONFIRMING TO DELETE A PLAYLIST
         document.getElementById("delete-list-confirm-button").onclick = (event) => {
@@ -234,26 +228,31 @@ export default class PlaylisterController {
             let card = document.getElementById("song-card-" + (i + 1));
 
             // USER WANTS TO EDIT THE SONG
+            // when user double-clicks a song card...
             card.ondblclick = (event) => {
                 this.ignoreParentClick(event);
 
-                // Always use the card's id, not event.target.id
-                const cardId = card.id; // e.g., "song-card-3"
-                const songIndex = parseInt(cardId.split("-")[2], 10) - 1;
+                // derive index from the card id
+                const songIndex = parseInt(card.id.split("-")[2], 10) - 1;
 
                 this.model.setEditSongIndex(songIndex);
                 const song = this.model.getSong(songIndex);
 
-                document.getElementById("edit-song-modal-title-textfield").value = song.title;
-                document.getElementById("edit-song-modal-artist-textfield").value = song.artist;
-                document.getElementById("edit-song-modal-youTubeId-textfield").value = song.youTubeId;
-                document.getElementById("edit-song-modal-year-textfield").value =
-                    (song.year != null ? song.year : "");
+                // PREFILL ALL FIELDS FROM THE EXISTING SONG (predefined values)
+                document.getElementById("edit-song-modal-title-textfield").value = song.title ?? "";
+                document.getElementById("edit-song-modal-artist-textfield").value = song.artist ?? "";
+                document.getElementById("edit-song-modal-youTubeId-textfield").value = song.youTubeId ?? "";
 
+                const yearEl = document.getElementById("edit-song-modal-year-textfield");
+                yearEl.value = Number.isFinite(song.year) ? song.year : "";   // <-- the key line
+                yearEl.placeholder = "YYYY";  // optional
+
+                // OPEN MODAL + block other interactions
                 const editSongModal = document.getElementById("edit-song-modal");
                 editSongModal.classList.add("is-visible");
                 this.model.toggleConfirmDialogOpen();
             };
+
 
 
 

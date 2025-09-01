@@ -65,6 +65,7 @@ export default class PlaylistBuilder {
      * @param {number} initId Unique identifier of the Playlist to create.
      * @param {string} initName Name of the Playlist to create.
      * @param {string} initSongs Songs for the Playlist to create.
+     * 
      * @returns 
      */
     buildPlaylistWithId(initId, initName, initSongs) {
@@ -72,7 +73,7 @@ export default class PlaylistBuilder {
         newPlaylist.name = initName;
         newPlaylist.songs = [];
         initSongs.forEach(song => {
-            let newSong = new PlaylistSongPrototype(song.title, song.artist, song.youTubeId);
+            let newSong = new PlaylistSongPrototype(song.title, song.artist, song.youTubeId, song.year);
             newPlaylist.songs.push(newSong);
         });
         return newPlaylist;
