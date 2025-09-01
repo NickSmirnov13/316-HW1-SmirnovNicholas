@@ -484,6 +484,25 @@ export default class PlaylisterModel {
         return this.confirmDialogOpen;
     }
 
+    sortCurrentListSongs() {
+        if (!this.hasCurrentList()) return;
+        this.currentList.songs.sort((a, b) => {
+            const ta = (a.title ?? "").toUpperCase();
+            const tb = (b.title ?? "").toUpperCase();
+            if (ta < tb) return -1;
+            if (ta > tb) return 1;
+            // tie-breakers: artist, then year
+            const aa = (a.artist ?? "").toUpperCase();
+            const ab = (b.artist ?? "").toUpperCase();
+            if (aa < ab) return -1;
+            if (aa > ab) return 1;
+            const ya = a.year ?? 0;
+            const yb = b.year ?? 0;
+            return ya - yb;
+        });
+    }
+
+
     /**
      * Undoes the most recent transaction, if there is one and updates the user
      * interface accordingly.
@@ -564,6 +583,7 @@ export default class PlaylisterModel {
 
     updateSong(index, songProto) {
         this.currentList.songs[index] = songProto;
+        this.sortCurrentListSongs();
         this.view.refreshSongCards(this.currentList);
         this.saveLists();
     }
