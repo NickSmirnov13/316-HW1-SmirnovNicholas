@@ -47,7 +47,7 @@ export default class PlaylisterController {
         }
         // HANDLER FOR CLOSE LIST BUTTON
         document.getElementById("close-button").onmousedown = (event) => {
-           // this.model.unselectAll();
+            // this.model.unselectAll();
             this.model.unselectCurrentList();
         }
     }
@@ -63,38 +63,82 @@ export default class PlaylisterController {
             this.model.toggleConfirmDialogOpen();
 
             // CLOSE THE MODAL
-            let editSongModal = document.getElementById("edit-song-modal");
+            const editSongModal = document.getElementById("edit-song-modal");
             editSongModal.classList.remove("is-visible");
+        };
+
+        const okBtn = document.getElementById("edit-song-confirm-button");
+        if (okBtn) {
+            okBtn.onclick = () => {
+                const idx = this.model.getEditSongIndex();
+                const title = document.getElementById("edit-song-modal-title-textfield")?.value;
+                const artist = document.getElementById("edit-song-modal-artist-textfield")?.value;
+                const youTubeId = document.getElementById("edit-song-modal-youTubeId-textfield")?.value;
+                const year = document.getElementById("edit-song-modal-year-textfield")?.value;
+
+                this.model.addTransactionToEditSong(idx, { title, artist, youTubeId, year });
+
+                this.model.toggleConfirmDialogOpen();
+                document.getElementById("edit-song-modal").classList.remove("is-visible");
+            };
         }
+
+        // REMOVE SONG — CONFIRM
+        document.getElementById("remove-song-confirm-button").onclick = (event) => {
+            const idx = this.model.getRemoveSongIndex();
+            if (idx != null) {
+                this.model.addTransactionToRemoveSong(idx); // undoable
+            }
+
+            // Allow other interactions + close modal
+            this.model.toggleConfirmDialogOpen();
+            document.getElementById("remove-song-modal").classList.remove("is-visible");
+        };
+
+        // REMOVE SONG — CANCEL
+        document.getElementById("remove-song-cancel-button").onclick = (event) => {
+            this.model.toggleConfirmDialogOpen();
+            document.getElementById("remove-song-modal").classList.remove("is-visible");
+        };
+
+
+        // === Pressing ENTER in any field should Confirm ===
+        const editFieldIds = [
+            "edit-song-modal-title-textfield",
+            "edit-song-modal-artist-textfield",
+            "edit-song-modal-youTubeId-textfield",
+            "edit-song-modal-year-textfield",
+        ];
+        editFieldIds.forEach((id) => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.onkeydown = (e) => {
+                    if (e.key === "Enter") {
+                        e.preventDefault();
+                        okBtn?.click(); // trigger the same confirm flow
+                    }
+                };
+            }
+        });
 
         // RESPOND TO THE USER CONFIRMING TO DELETE A PLAYLIST
         document.getElementById("delete-list-confirm-button").onclick = (event) => {
-            // NOTE THAT WE SET THE ID OF THE LIST TO REMOVE
-            // IN THE MODEL OBJECT AT THE TIME THE ORIGINAL
-            // BUTTON PRESS EVENT HAPPENED
-            let deleteListId = this.model.getDeleteListId();
-
-            // DELETE THE LIST, THIS IS NOT UNDOABLE
+            const deleteListId = this.model.getDeleteListId();
             this.model.deleteList(deleteListId);
-
-            // ALLOW OTHER INTERACTIONS
             this.model.toggleConfirmDialogOpen();
-
-            // CLOSE THE MODAL
-            let deleteListModal = document.getElementById("delete-list-modal");
+            const deleteListModal = document.getElementById("delete-list-modal");
             deleteListModal.classList.remove("is-visible");
-        }
+        };
 
         // RESPOND TO THE USER CLOSING THE DELETE PLAYLIST MODAL
         document.getElementById("delete-list-cancel-button").onclick = (event) => {
-            // ALLOW OTHER INTERACTIONS
             this.model.toggleConfirmDialogOpen();
-
-            // CLOSE THE MODAL
-            let deleteListModal = document.getElementById("delete-list-modal");
+            const deleteListModal = document.getElementById("delete-list-modal");
             deleteListModal.classList.remove("is-visible");
-        }
+        };
     }
+
+
 
     /**
      * This function specifies event handling for interactions with a
@@ -166,6 +210,14 @@ export default class PlaylisterController {
             this.model.setListNameBeingChanged(false, id);
             this.model.renameCurrentList(event.target.value);//, id);
         }
+        const dupBtn = document.getElementById(`duplicate-list-button-${id}`);
+        if (dupBtn) {
+            dupBtn.onclick = (e) => {
+                e.stopPropagation();               // don’t trigger “open” on the card click
+                this.model.duplicatePlaylist(id);
+            };
+        }
+
     }
 
     /**
@@ -183,39 +235,50 @@ export default class PlaylisterController {
 
             // USER WANTS TO EDIT THE SONG
             card.ondblclick = (event) => {
-                // DON'T PROPOGATE THE EVENT
                 this.ignoreParentClick(event);
 
-                // WE NEED TO RECORD THE INDEX FOR THE MODAL
-                let songIndex = Number.parseInt(event.target.id.split("-")[2]) - 1;
-                this.model.setEditSongIndex(songIndex);
-                let song = this.model.getSong(songIndex);
+                // Always use the card's id, not event.target.id
+                const cardId = card.id; // e.g., "song-card-3"
+                const songIndex = parseInt(cardId.split("-")[2], 10) - 1;
 
-                // LOAD THE SONG DATA INTO THE MODAL
+                this.model.setEditSongIndex(songIndex);
+                const song = this.model.getSong(songIndex);
+
                 document.getElementById("edit-song-modal-title-textfield").value = song.title;
                 document.getElementById("edit-song-modal-artist-textfield").value = song.artist;
                 document.getElementById("edit-song-modal-youTubeId-textfield").value = song.youTubeId;
+                document.getElementById("edit-song-modal-year-textfield").value =
+                    (song.year != null ? song.year : "");
 
-                // OPEN UP THE MODAL
-                let editSongModal = document.getElementById("edit-song-modal");
+                const editSongModal = document.getElementById("edit-song-modal");
                 editSongModal.classList.add("is-visible");
-
-                // IGNORE ALL NON-MODAL EVENTS
                 this.model.toggleConfirmDialogOpen();
-            }
+            };
+
+
 
             // USER WANTS TO REMOVE A SONG FROM THE PLAYLIST
             let removeSongButton = document.getElementById("remove-song-" + i);
             removeSongButton.onclick = (event) => {
-                // DON'T PROPOGATE THE EVENT
                 this.ignoreParentClick(event);
 
-                // RECORD WHICH SONG SO THE MODAL KNOWS AND UPDATE THE MODAL TEXT
-                let songIndex = Number.parseInt(event.target.id.split("-")[2]);               
+                // Which song?
+                const songIndex = Number.parseInt(event.target.id.split("-")[2]);
+                this.model.setRemoveSongIndex(songIndex);
 
-                // PROCESS THE REMOVE SONG EVENT
-                this.model.addTransactionToRemoveSong(songIndex);
-            }
+                // Fill the modal text with the song's title (and maybe artist)
+                const song = this.model.getSong(songIndex);
+                const span = document.getElementById("remove-song-span");
+                span.innerHTML = ""; // reset
+                const label = `${song.title} by ${song.artist}`;
+                span.appendChild(document.createTextNode(label));
+
+                // Show modal + disable other interactions
+                const modal = document.getElementById("remove-song-modal");
+                modal.classList.add("is-visible");
+                this.model.toggleConfirmDialogOpen();
+            };
+
 
             // NOW SETUP ALL CARD DRAGGING HANDLERS AS THE USER MAY WISH TO CHANGE
             // THE ORDER OF SONGS IN THE PLAYLIST
@@ -266,4 +329,9 @@ export default class PlaylisterController {
         this.model = initModel;
         this.registerStaticHandlers();
     }
+
+    processAddPlaylist() {
+        this.model.addNewPlaylist("Untitled");
+    }
+
 }

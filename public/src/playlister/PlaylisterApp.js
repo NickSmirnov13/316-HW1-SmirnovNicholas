@@ -89,5 +89,5 @@ export class PlaylisterApp {
 window.onload = function() {
     // MAKE THE APP AND START IT
     let app = new PlaylisterApp();
-    app.start();
+    app.start(); 
 }

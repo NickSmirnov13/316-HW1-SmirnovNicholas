@@ -19,7 +19,7 @@ export default class PlaylisterView {
      * for the Web page currently being viewed. Updating the DOM updates what the user sees 
      * in the browser.
      */
-    constructor() {}
+    constructor() { }
 
     /**
      * Adds a playlist card to to the left sidebar in the UI.
@@ -37,9 +37,11 @@ export default class PlaylisterView {
 
         playlistCard.querySelector("span").id = "playlist-card-text-" + newList.id;
         playlistCard.querySelector("span").textContent = newList.name;
-        
+
         let textInput = playlistCard.querySelector("#playlist-card-text-input-");
         textInput.id += newList.id;
+
+        playlistCard.querySelector('input[id^="duplicate-list-button-"]').id += newList.id;
 
         playlistCard.querySelector('input[id^="delete-list-button-"]').id += newList.id;
 
@@ -51,6 +53,8 @@ export default class PlaylisterView {
 
         // SETUP THE HANDLER FOR WHEN SOMEONE MOUSE CLICKS ON OUR LIST
         this.controller.registerPlaylistCardHandlers(newList.id);
+
+
     }
 
     /**
@@ -67,7 +71,7 @@ export default class PlaylisterView {
      * Closes the edit song modal, which would be because either the
      * confirm or cancel button was pressed.
      */
-    closeEditSongModal() {        
+    closeEditSongModal() {
         // CLOSE THE MODAL
         let editSongModal = document.getElementById("edit-song-modal");
         editSongModal.classList.remove("is-visible");
@@ -93,7 +97,7 @@ export default class PlaylisterView {
      * 
      * @param {number} id The id of the button control to enable.
      */
-   enableButton(id) {
+    enableButton(id) {
         let button = document.getElementById(id);
         button.classList.remove("disabled");
         button.disabled = false;
@@ -157,56 +161,59 @@ export default class PlaylisterView {
      * @param {Playlist} playlist The playlist whose songs are to be reshown.
      */
     refreshSongCards(playlist) {
-        // CLEAR OUT THE OLD SONG CARDS
-        let itemsDiv = document.getElementById("song-cards");
+        const itemsDiv = document.getElementById("song-cards");
         itemsDiv.innerHTML = "";
 
-        // FOR EACH SONG
-        for (let i = 0; i < playlist.songs.length; i++) {
-            // MAKE AN ITEM (i.e. CARD)
-            let song = playlist.getSongAt(i);
-            let itemDiv = document.createElement("div");
-            itemDiv.classList.add("song-card");
-            itemDiv.classList.add("unselected-song-card");
-            itemDiv.id = "song-card-" + (i + 1);
+        const proto = document.getElementById("song-card-prototype");
+        if (!proto) return;
 
-            // HAVE THE TEXT LINK TO THE YOUTUBE VIDEO
-            let youTubeLink = document.createElement("a");
-            youTubeLink.classList.add("song-card-title");
-            youTubeLink.href = "https://www.youtube.com/watch?v=" + song.youTubeId;
-            youTubeLink.target = 1;
-            youTubeLink.innerHTML = song.title;
+        const len = Array.isArray(playlist?.songs) ? playlist.songs.length : 0;
 
-            let bySpan = document.createElement("span");
-            bySpan.class = "song-card-by";
-            bySpan.innerHTML = " by ";
+        for (let i = 0; i < len; i++) {
+            const song = playlist.getSongAt(i);
+            if (!song) continue;
 
-            let artistSpan = document.createElement("span");
-            artistSpan.class = "song-card-artist";
-            artistSpan.innerHTML = song.artist;
+            const card = proto.cloneNode(true);
+            card.hidden = false;
+            card.id = `song-card-${i + 1}`;
 
-            // PUT THE CONTENT INTO THE CARD
-            let songNumber = document.createTextNode("" + (i + 1) + ". ");
-            itemDiv.appendChild(songNumber);
-            itemDiv.appendChild(youTubeLink);
-            itemDiv.appendChild(bySpan);
-            itemDiv.appendChild(artistSpan);
+            // number as text node (matches original styling)
+            card.insertBefore(document.createTextNode(`${i + 1}. `), card.firstChild);
 
-            // MAKE THE DELETE LIST BUTTON
-            let deleteButton = document.createElement("input");
-            deleteButton.setAttribute("type", "button");
-            deleteButton.setAttribute("id", "remove-song-" + i);
-            deleteButton.setAttribute("class", "song-card-button");
-            deleteButton.setAttribute("value", "\u2715");
-            itemDiv.appendChild(deleteButton);
+            // title
+            const titleA = card.querySelector(".song-card-title");
+            titleA.id = `song-card-title-${i + 1}`;
+            titleA.href = `https://www.youtube.com/watch?v=${song.youTubeId ?? ""}`;
+            titleA.target = 1;
+            titleA.textContent = song.title ?? "Untitled";
 
-            // AND PUT THE CARD INTO THE UI
-            itemsDiv.appendChild(itemDiv);
+            // year after title
+            const yearSpan = card.querySelector(".song-card-year");
+            yearSpan.id = `song-card-year-${i + 1}`;
+            const yr = song.year;
+            yearSpan.textContent = (yr !== undefined && yr !== null && `${yr}`.trim() !== "")
+                ? ` (${yr})`
+                : "";
+
+            // artist
+            const artistSpan = card.querySelector(".song-card-artist");
+            artistSpan.id = `song-card-artist-${i + 1}`;
+            artistSpan.textContent = song.artist ?? "???";
+
+            // remove button (controller expects 0-based id)
+            const removeBtn = card.querySelector('input[id^="remove-song-"]');
+            removeBtn.id = `remove-song-${i}`;
+
+            itemsDiv.appendChild(card);
         }
-        // NOW THAT THE CONTROLS EXIST WE CAN REGISTER EVENT
-        // HANDLERS FOR THEM
+
         this.controller.registerSongCardHandlers();
     }
+
+
+
+
+
 
     /**
      * When UI controls are dynamically created by this object they may need
@@ -261,14 +268,56 @@ export default class PlaylisterView {
      * Implements our foolproof design strategy so that when toolbar
      * buttons cannot be used they are disabled.
      */
+    /**
+ * Implements our foolproof design strategy so that when toolbar
+ * buttons cannot be used they are disabled.
+ */
     updateToolbarButtons(hasCurrentList, isConfirmDialogOpen, hasTransactionToDo, hasTransactionToUndo) {
-        this.enableButton("close-button");
-        this.enableButton("add-song-button");
-        if (!hasTransactionToUndo) {
+        // === Add List Button ===
+        if (isConfirmDialogOpen) {
+            // if a list name is being edited (or confirm dialog open), disable
+            this.disableButton("add-playlist-button");
+        } else {
+            this.enableButton("add-playlist-button");
+        }
+
+        // === Add Song Button ===
+        if (hasCurrentList) {
+            this.enableButton("add-song-button");
+        } else {
+            this.disableButton("add-song-button");
+        }
+
+        // === Undo Button ===
+        if (hasTransactionToUndo) {
+            this.enableButton("undo-button");
+        } else {
             this.disableButton("undo-button");
         }
-        else {
-            this.enableButton("undo-button");
+
+        // === Redo Button ===
+        if (hasTransactionToDo) {
+            this.enableButton("redo-button");
+        } else {
+            this.disableButton("redo-button");
+        }
+
+        // === Close List Button ===
+        if (hasCurrentList) {
+            this.enableButton("close-button");
+        } else {
+            this.disableButton("close-button");
         }
     }
+
+
+    setController(initController) {
+        this.controller = initController;
+        // hook up the add-playlist-button to controller
+        let addButton = document.getElementById("add-playlist-button");
+        addButton.onclick = () => this.controller.processAddPlaylist();
+    }
+
+
+
 }
