@@ -268,42 +268,36 @@ export default class PlaylisterView {
  * buttons cannot be used they are disabled.
  */
     updateToolbarButtons(hasCurrentList, isConfirmDialogOpen, hasTransactionToDo, hasTransactionToUndo) {
-        // === Add List Button ===
+        const disable = (id) => this.disableButton(id);
+        const enable = (id) => this.enableButton(id);
+
+        // While any modal/confirm dialog is open, disable all relevant controls
         if (isConfirmDialogOpen) {
-            // if a list name is being edited (or confirm dialog open), disable
-            this.disableButton("add-playlist-button");
-        } else {
-            this.enableButton("add-playlist-button");
+            ["add-playlist-button", "add-song-button", "undo-button", "redo-button", "close-button"]
+                .forEach(disable);
+            return;
         }
 
-        // === Add Song Button ===
-        if (hasCurrentList) {
-            this.enableButton("add-song-button");
-        } else {
-            this.disableButton("add-song-button");
-        }
+        // Add List: disabled when a list is being edited (i.e., a list is loaded)
+        if (hasCurrentList) disable("add-playlist-button");
+        else enable("add-playlist-button");
 
-        // === Undo Button ===
-        if (hasTransactionToUndo) {
-            this.enableButton("undo-button");
-        } else {
-            this.disableButton("undo-button");
-        }
+        // Add Song: only if a list is loaded
+        if (hasCurrentList) enable("add-song-button");
+        else disable("add-song-button");
 
-        // === Redo Button ===
-        if (hasTransactionToDo) {
-            this.enableButton("redo-button");
-        } else {
-            this.disableButton("redo-button");
-        }
+        // Undo/Redo: only if a list is loaded AND there are transactions
+        if (hasCurrentList && hasTransactionToUndo) enable("undo-button");
+        else disable("undo-button");
 
-        // === Close List Button ===
-        if (hasCurrentList) {
-            this.enableButton("close-button");
-        } else {
-            this.disableButton("close-button");
-        }
+        if (hasCurrentList && hasTransactionToDo) enable("redo-button");
+        else disable("redo-button");
+
+        // Close List: only if a list is loaded
+        if (hasCurrentList) enable("close-button");
+        else disable("close-button");
     }
+
 
 
     setController(initController) {
