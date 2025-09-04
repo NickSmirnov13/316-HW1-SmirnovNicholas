@@ -278,9 +278,8 @@ export default class PlaylisterView {
             return;
         }
 
-        // Add List: disabled when a list is being edited (i.e., a list is loaded)
-        if (hasCurrentList) disable("add-playlist-button");
-        else enable("add-playlist-button");
+        // Add List: enabled when NO list is loaded; disable while a list is open
+        enable("add-playlist-button");
 
         // Add Song: only if a list is loaded
         if (hasCurrentList) enable("add-song-button");
@@ -297,8 +296,6 @@ export default class PlaylisterView {
         if (hasCurrentList) enable("close-button");
         else disable("close-button");
     }
-
-
 
     setController(initController) {
         this.controller = initController;
